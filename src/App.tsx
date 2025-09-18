@@ -15,7 +15,7 @@ import Login from "./components/LoginForm";
 import AdminPanel from "./components/AdminPanel";
 import VotePanel from "./components/VotePanel";
 
-const usernames = ["alice", "bob", "charlie", "admin"];
+const usernames = ["wheels", "gibbo","heckles", "mo", "jag", "b", "lachy", "admin"];
 
 export default function App() {
   const [user, setUser] = useState<string | null>(null);
