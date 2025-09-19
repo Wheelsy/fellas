@@ -6,7 +6,6 @@ import {
   IconButton,
   Stack,
   ListItem,
-  ListItemText,
   List,
 } from "@mui/material";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
