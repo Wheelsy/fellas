@@ -5,6 +5,9 @@ import {
   Typography,
   IconButton,
   Stack,
+  ListItem,
+  ListItemText,
+  List,
 } from "@mui/material";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import ThumbDownIcon from "@mui/icons-material/ThumbDown";
@@ -66,6 +69,29 @@ export default function VotePanel({
                   <ThumbDownIcon />
                 </IconButton>
                 <Typography>{downVotes}</Typography>
+                <List>
+                  <ListItem>
+                    <Box
+                      display="flex"
+                      width="100%"
+                      justifyContent="space-between"
+                      paddingLeft={4}
+                    >
+                      <Box flex={1} mr={2}>
+                        <Typography fontWeight="bold">Upvoted</Typography>
+                        {date.votes.up.map((user: string) => (
+                          <Typography key={`up-${user}`}>{user}</Typography>
+                        ))}
+                      </Box>
+                      <Box flex={1} ml={2}>
+                        <Typography fontWeight="bold">Downvoted</Typography>
+                        {date.votes.down.map((user: string) => (
+                          <Typography key={`down-${user}`}>{user}</Typography>
+                        ))}
+                      </Box>
+                    </Box>
+                  </ListItem>
+                </List>
               </Box>
 
               {/* Show locked message only on the date that triggered it */}
