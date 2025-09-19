@@ -30,6 +30,7 @@ export default function App() {
   }, []);
 
   const handleLogin = (username: string) => {
+    username = username.toLowerCase();
     if (usernames.includes(username)) {
       setUser(username);
     }
