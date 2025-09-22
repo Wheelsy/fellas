@@ -7,6 +7,8 @@ import {
   Stack,
   ListItem,
   List,
+  Button,
+  Grid,
 } from "@mui/material";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import ThumbDownIcon from "@mui/icons-material/ThumbDown";
@@ -18,16 +20,70 @@ interface VotePanelProps {
   totalUsers: number;
 }
 
+// Helper to generate ICS content
+const generateICS = ({
+  title,
+  start,
+  end,
+  description = "",
+  location = "",
+}: {
+  title: string;
+  start: Date;
+  end: Date;
+  description?: string;
+  location?: string;
+}) => {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const formatDate = (d: Date) =>
+    `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(
+      d.getUTCDate()
+    )}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
+
+  return `BEGIN:VCALENDAR
+VERSION:2.0
+CALSCALE:GREGORIAN
+BEGIN:VEVENT
+SUMMARY:${title}
+DTSTART:${formatDate(start)}
+DTEND:${formatDate(end)}
+DESCRIPTION:${description}
+LOCATION:${location}
+END:VEVENT
+END:VCALENDAR`;
+};
+
 export default function VotePanel({
   dates,
   user,
   onVote,
   totalUsers,
 }: VotePanelProps) {
-  // Determine if any date is locked
   const anyDateLocked = dates.some(
     (date) => (date.votes?.up?.length || 0) === totalUsers
   );
+
+  const handleDownloadICS = (dateStr: string) => {
+    const start = new Date(dateStr);
+    const end = new Date(start.getTime() + 30 * 60 * 1000); // default 30 min
+    const icsContent = generateICS({
+      title: "Jackbox with the fellas",
+      start,
+      end,
+      description: "Let's jack it!",
+      location: "Discord",
+    });
+
+    const blob = new Blob([icsContent], {
+      type: "text/calendar;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Jackbox-invite.ics";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <Stack spacing={2} mt={3}>
@@ -36,6 +92,8 @@ export default function VotePanel({
         const downVotes = date.votes?.down?.length || 0;
         const hasVotedUp = date.votes?.up?.includes(user);
         const hasVotedDown = date.votes?.down?.includes(user);
+
+        const isLocked = upVotes === totalUsers;
 
         return (
           <Card
@@ -93,11 +151,23 @@ export default function VotePanel({
                 </List>
               </Box>
 
-              {/* Show locked message only on the date that triggered it */}
-              {upVotes === totalUsers && (
-                <Typography color="success.main" mt={1}>
-                  ✅ This date is locked in!
-                </Typography>
+              {isLocked && (
+                <Grid container spacing={2}>
+                  <Grid>
+                    <Typography color="success.main" mt={1}>
+                      ✅ This date is locked in!
+                    </Typography>
+                  </Grid>
+                  <Grid>
+                    <Button
+                      variant="contained"
+                      sx={{ mt: 1 }}
+                      onClick={() => handleDownloadICS(date.date)}
+                    >
+                      Download Calendar Invite
+                    </Button>
+                  </Grid>
+                </Grid>
               )}
             </CardContent>
           </Card>
