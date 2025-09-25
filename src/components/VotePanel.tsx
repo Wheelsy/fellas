@@ -65,7 +65,7 @@ export default function VotePanel({
 
   const handleDownloadICS = (dateStr: string) => {
     const start = new Date(dateStr);
-    const end = new Date(start.getTime() + 30 * 60 * 1000); // default 30 min
+    const end = new Date(start.getTime() + 120 * 60 * 1000); // 2 hours
     const icsContent = generateICS({
       title: "Jackbox with the fellas",
       start,
