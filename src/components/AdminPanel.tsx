@@ -7,12 +7,12 @@ import {
   ListItemText,
   IconButton,
 } from "@mui/material";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 // @ts-ignore
 import dayjs, { Dayjs } from "dayjs";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { db } from "../firebase";
 import { doc, deleteDoc } from "firebase/firestore";
+import { DateTimePicker } from "@mui/x-date-pickers";
 
 interface AdminPanelProps {
   onAddDate: (dateStr: string) => void;
@@ -24,7 +24,7 @@ export default function AdminPanel({ onAddDate, dates }: AdminPanelProps) {
 
   const handleAdd = () => {
     if (selectedDate) {
-      onAddDate(selectedDate.format("YYYY-MM-DD"));
+      onAddDate(selectedDate.format("YYYY-MM-DD hh:mma"));
       setSelectedDate(null);
     }
   };
@@ -40,7 +40,7 @@ export default function AdminPanel({ onAddDate, dates }: AdminPanelProps) {
   return (
     <Box mt={3}>
       <Box display="flex" gap={2} alignItems="center" flexWrap="wrap">
-        <DatePicker
+        <DateTimePicker
           label="Pick a date"
           value={selectedDate}
           onChange={(newValue) => setSelectedDate(newValue)}
