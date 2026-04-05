@@ -95,13 +95,18 @@ export default function App() {
   return (
     <Container maxWidth="sm" sx={{ minHeight: "100vh", py: 3 }}>
       {/* App header */}
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+      <Box
+        display="flex"
+        alignItems="center"
+        justifyContent="space-between"
+        mb={1}
+      >
         <Box>
           <Typography
             variant="h4"
             sx={{ fontFamily: '"Baloo 2", cursive', lineHeight: 1.1 }}
           >
-            🎮 Fellas
+            🎮 SpReAdY wHeN
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Jackbox night scheduler
