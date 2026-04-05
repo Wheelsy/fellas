@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Container, Typography, Button, Box } from "@mui/material";
+import { Container, Typography, Button, Box, Divider } from "@mui/material";
 import { db } from "./firebase";
 import {
   collection,
@@ -15,16 +15,33 @@ import Login from "./components/LoginForm";
 import AdminPanel from "./components/AdminPanel";
 import VotePanel from "./components/VotePanel";
 
-const usernames = ["wheels", "gibbo","heckles", "mo", "jag", "b", "lachy", "admin"];
+const usernames = ["wheels", "gibbo", "heckles", "mo", "jag", "b", "lachy", "admin"];
+
+// Parse "YYYY-MM-DD hh:mma" to a sortable timestamp
+const parseDateStrToMs = (dateStr: string): number => {
+  const [datePart, timePart] = (dateStr || "").split(" ");
+  if (!datePart || !timePart) return 0;
+  const isPM = timePart.toLowerCase().includes("pm");
+  const timeNumbers = timePart.replace(/[apm]/gi, "").split(":");
+  let hours = parseInt(timeNumbers[0] || "0", 10);
+  const minutes = parseInt(timeNumbers[1] || "0", 10);
+  if (isPM && hours !== 12) hours += 12;
+  if (!isPM && hours === 12) hours = 0;
+  return new Date(
+    `${datePart}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`
+  ).getTime();
+};
 
 export default function App() {
   const [user, setUser] = useState<string | null>(null);
   const [dates, setDates] = useState<any[]>([]);
 
-  // Live Firestore subscription
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "dates"), (snapshot) => {
-      setDates(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+      const docs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      // Sort chronologically
+      docs.sort((a: any, b: any) => parseDateStrToMs(a.date) - parseDateStrToMs(b.date));
+      setDates(docs);
     });
     return () => unsub();
   }, []);
@@ -38,7 +55,6 @@ export default function App() {
 
   const handleLogout = () => setUser(null);
 
-  // Admin adds date
   const addDate = async (dateStr: string) => {
     await addDoc(collection(db, "dates"), {
       date: dateStr,
@@ -46,52 +62,86 @@ export default function App() {
     });
   };
 
-  // User votes
   const handleVote = async (dateId: string, type: "up" | "down") => {
     if (!user) return;
     const ref = doc(db, "dates", dateId);
+    const dateData = dates.find((d) => d.id === dateId);
+    const alreadyVotedUp = dateData?.votes?.up?.includes(user);
+    const alreadyVotedDown = dateData?.votes?.down?.includes(user);
 
     if (type === "up") {
-      await updateDoc(ref, {
-        "votes.up": arrayUnion(user),
-        "votes.down": arrayRemove(user),
-      });
+      if (alreadyVotedUp) {
+        // Toggle off — removes vote, unlocks if it was locked
+        await updateDoc(ref, { "votes.up": arrayRemove(user) });
+      } else {
+        await updateDoc(ref, {
+          "votes.up": arrayUnion(user),
+          "votes.down": arrayRemove(user),
+        });
+      }
     } else {
-      await updateDoc(ref, {
-        "votes.down": arrayUnion(user),
-        "votes.up": arrayRemove(user),
-      });
+      if (alreadyVotedDown) {
+        // Toggle off
+        await updateDoc(ref, { "votes.down": arrayRemove(user) });
+      } else {
+        await updateDoc(ref, {
+          "votes.down": arrayUnion(user),
+          "votes.up": arrayRemove(user),
+        });
+      }
     }
   };
 
   return (
-    <Container maxWidth="sm" sx={{ position: "relative", minHeight: "100vh" }}>
-      <Typography variant="h4" gutterBottom>
-        🗓️ Fellas
-      </Typography>
+    <Container maxWidth="sm" sx={{ minHeight: "100vh", py: 3 }}>
+      {/* App header */}
+      <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+        <Box>
+          <Typography
+            variant="h4"
+            sx={{ fontFamily: '"Baloo 2", cursive', lineHeight: 1.1 }}
+          >
+            🎮 Fellas
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Jackbox night scheduler
+          </Typography>
+        </Box>
 
-      {!user ? (
-        <Login onLogin={handleLogin} />
-      ) : (
-        <>
-          <Box sx={{ position: "absolute", top: 16, right: 16 }}>
+        {user && (
+          <Box display="flex" alignItems="center" gap={1.5}>
+            <Typography variant="body2" color="text.secondary">
+              {user}
+            </Typography>
             <Button
-              variant="contained"
+              variant="outlined"
+              size="small"
               sx={{
-                bgcolor: "#ff0f0fff",
-                color: "#fff",
-                borderRadius: "12px",
+                borderColor: "rgba(255,255,255,0.2)",
+                color: "rgba(255,255,255,0.6)",
+                borderRadius: "8px",
                 textTransform: "none",
-                "&:hover": { bgcolor: "#cc0c0c" },
+                fontSize: "0.75rem",
+                "&:hover": {
+                  borderColor: "#f44336",
+                  color: "#f44336",
+                  bgcolor: "rgba(244,67,54,0.08)",
+                },
               }}
               onClick={handleLogout}
             >
               Logout
             </Button>
           </Box>
+        )}
+      </Box>
 
-          <Typography variant="h6">Welcome, {user}!</Typography>
+      <Divider sx={{ opacity: 0.15, mb: 2 }} />
 
+      {!user ? (
+        <Login onLogin={handleLogin} />
+      ) : (
+        <>
           {user === "admin" ? (
             <AdminPanel onAddDate={addDate} dates={dates} />
           ) : (
