@@ -5,19 +5,25 @@ import {
   IconButton,
   Typography,
   Paper,
+  Chip,
+  TextField,
 } from "@mui/material";
 // @ts-ignore
 import dayjs, { Dayjs } from "dayjs";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
+import PlaylistAddIcon from "@mui/icons-material/PlaylistAdd";
 import { db } from "../firebase";
 import { doc, deleteDoc } from "firebase/firestore";
 import { DateTimePicker } from "@mui/x-date-pickers";
 
 interface AdminPanelProps {
   onAddDate: (dateStr: string) => void;
+  onAddDates: (dateStrs: string[]) => void;
   dates: { id: string; date: string }[];
 }
+
+const FMT = "YYYY-MM-DD hh:mma";
 
 const parseDateDisplay = (dateStr: string) => {
   const [datePart, timePart] = (dateStr || "").split(" ");
@@ -33,12 +39,41 @@ const parseDateDisplay = (dateStr: string) => {
   return { dayName, shortDate, time: cleanTime };
 };
 
-export default function AdminPanel({ onAddDate, dates }: AdminPanelProps) {
+export default function AdminPanel({ onAddDate, onAddDates, dates }: AdminPanelProps) {
   const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null);
+  const [repeatWeeks, setRepeatWeeks] = useState(1);
+  const [pending, setPending] = useState<string[]>([]);
+
+  // Add current pick (x repeatWeeks consecutive weeks) to the staging list
+  const handleStage = () => {
+    if (!selectedDate) return;
+    const weeks = Math.max(1, Math.min(52, repeatWeeks || 1));
+    const additions: string[] = [];
+    for (let i = 0; i < weeks; i++) {
+      additions.push(selectedDate.add(i, "week").format(FMT));
+    }
+    setPending((prev) => {
+      const merged = [...prev];
+      for (const d of additions) if (!merged.includes(d)) merged.push(d);
+      return merged;
+    });
+    setSelectedDate(null);
+    setRepeatWeeks(1);
+  };
+
+  const handleUnstage = (dateStr: string) => {
+    setPending((prev) => prev.filter((d) => d !== dateStr));
+  };
+
+  const handleCommit = () => {
+    if (pending.length === 0) return;
+    onAddDates(pending);
+    setPending([]);
+  };
 
   const handleAdd = () => {
     if (selectedDate) {
-      onAddDate(selectedDate.format("YYYY-MM-DD hh:mma"));
+      onAddDate(selectedDate.format(FMT));
       setSelectedDate(null);
     }
   };
@@ -103,6 +138,74 @@ export default function AdminPanel({ onAddDate, dates }: AdminPanelProps) {
             Add Date
           </Button>
         </Box>
+
+        {/* Batch: stage many at once */}
+        <Box display="flex" gap={1.5} alignItems="center" flexWrap="wrap" mt={2}>
+          <TextField
+            label="Repeat weekly ×"
+            type="number"
+            size="small"
+            value={repeatWeeks}
+            onChange={(e) => setRepeatWeeks(parseInt(e.target.value, 10) || 1)}
+            inputProps={{ min: 1, max: 52 }}
+            sx={{ width: 130, "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
+          />
+          <Button
+            variant="outlined"
+            startIcon={<PlaylistAddIcon />}
+            disabled={!selectedDate}
+            onClick={handleStage}
+            sx={{
+              borderColor: "rgba(153,253,39,0.5)",
+              color: "#99fd27",
+              borderRadius: "10px",
+              textTransform: "none",
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+              "&:hover": { borderColor: "#99fd27", bgcolor: "rgba(153,253,39,0.08)" },
+            }}
+          >
+            Add to batch
+          </Button>
+        </Box>
+
+        {pending.length > 0 && (
+          <Box mt={2}>
+            <Box display="flex" flexWrap="wrap" gap={1} mb={1.5}>
+              {pending.map((d) => {
+                const { dayName, shortDate, time } = parseDateDisplay(d);
+                return (
+                  <Chip
+                    key={d}
+                    label={`${dayName} ${shortDate} · ${time}`}
+                    onDelete={() => handleUnstage(d)}
+                    sx={{
+                      bgcolor: "#1e1e1e",
+                      color: "#fff",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                    }}
+                  />
+                );
+              })}
+            </Box>
+            <Button
+              variant="contained"
+              fullWidth
+              startIcon={<AddIcon />}
+              onClick={handleCommit}
+              sx={{
+                bgcolor: "#99fd27",
+                color: "#000",
+                borderRadius: "10px",
+                textTransform: "none",
+                fontWeight: 700,
+                "&:hover": { bgcolor: "#7bc91f" },
+              }}
+            >
+              Add all {pending.length} date{pending.length > 1 ? "s" : ""}
+            </Button>
+          </Box>
+        )}
       </Paper>
 
       {/* Dates list */}

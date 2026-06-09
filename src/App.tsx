@@ -62,6 +62,17 @@ export default function App() {
     });
   };
 
+  const addDates = async (dateStrs: string[]) => {
+    await Promise.all(
+      dateStrs.map((dateStr) =>
+        addDoc(collection(db, "dates"), {
+          date: dateStr,
+          votes: { up: [], down: [] },
+        })
+      )
+    );
+  };
+
   const handleVote = async (dateId: string, type: "up" | "down") => {
     if (!user) return;
     const ref = doc(db, "dates", dateId);
@@ -148,7 +159,7 @@ export default function App() {
       ) : (
         <>
           {user === "admin" ? (
-            <AdminPanel onAddDate={addDate} dates={dates} />
+            <AdminPanel onAddDate={addDate} onAddDates={addDates} dates={dates} />
           ) : (
             <VotePanel
               dates={dates}
